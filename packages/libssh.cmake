@@ -1,26 +1,25 @@
 ExternalProject_Add(libssh
     DEPENDS
         zlib
-        libressl
-    GIT_REPOSITORY https://git.libssh.org/projects/libssh.git
-    GIT_SHALLOW 1
+        openssl
+    GIT_REPOSITORY https://gitlab.com/libssh/libssh-mirror.git
+    SOURCE_DIR ${SOURCE_LOCATION}
+    GIT_CLONE_FLAGS "--filter=tree:0"
     UPDATE_COMMAND ""
-    PATCH_COMMAND ${EXEC} git am ${CMAKE_CURRENT_SOURCE_DIR}/libssh-*.patch
-    CONFIGURE_COMMAND ${EXEC} cmake -H<SOURCE_DIR> -B<BINARY_DIR>
+    CONFIGURE_COMMAND ${EXEC} CONF=1 cmake -H<SOURCE_DIR> -B<BINARY_DIR>
+        -G Ninja
         -DCMAKE_BUILD_TYPE=Release
-        -DCMAKE_INSTALL_PREFIX=${MINGW_INSTALL_PREFIX}
         -DCMAKE_TOOLCHAIN_FILE=${TOOLCHAIN_FILE}
-        -DWITH_ZLIB=ON
-        -DBUILD_STATIC_LIB=ON
-        -DWITH_EXAMPLES=OFF
+        -DCMAKE_INSTALL_PREFIX=${MINGW_INSTALL_PREFIX}
+        -DCMAKE_FIND_ROOT_PATH=${MINGW_INSTALL_PREFIX}
         -DBUILD_SHARED_LIBS=OFF
-        # These functions will be declared in libcrypto. Assume they're exist to avoid linking problem later.
-        -DHAVE_STRNDUP=ON
-        -DHAVE_EXPLICIT_BZERO=ON
-    BUILD_COMMAND ${MAKE} -C <BINARY_DIR>
-    INSTALL_COMMAND ${MAKE} -C <BINARY_DIR> install
+        -DWITH_ZLIB=ON
+        -DWITH_EXAMPLES=OFF
+    BUILD_COMMAND ${EXEC} ninja -C <BINARY_DIR>
+          COMMAND bash -c "echo {'Libs.private: -lwsock32 -liphlpapi -lpthread','\nRequires.private: libssl','\nCflags.private: -DLIBSSH_STATIC'} >> <BINARY_DIR>/libssh.pc"
+    INSTALL_COMMAND ${EXEC} ninja -C <BINARY_DIR> install
     LOG_DOWNLOAD 1 LOG_UPDATE 1 LOG_CONFIGURE 1 LOG_BUILD 1 LOG_INSTALL 1
 )
 
 force_rebuild_git(libssh)
-extra_step(libssh)
+cleanup(libssh install)

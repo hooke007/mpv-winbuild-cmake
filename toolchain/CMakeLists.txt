@@ -1,38 +1,37 @@
-function(force_rebuild_git _name)
-    get_property(git_tag TARGET ${_name} PROPERTY _EP_GIT_TAG)
-    if(NOT git_tag)
-      set(git_tag "@{u}")
-      set(pull COMMAND git pull)
-    else()
-      set(git_tag ${git_tag})
-      set(pull "")
-    endif()
-
-    if(ENABLE_VCS_UPDATES)
-        ExternalProject_Add_Step(${_name} force-update
-            DEPENDEES download update
-            DEPENDERS patch build install
-            COMMAND git reset --hard ${git_tag}
-            ${pull}
-            WORKING_DIRECTORY <SOURCE_DIR>
-            LOG 1
-        )
-    endif()
-endfunction()
-
+set_property(DIRECTORY PROPERTY EP_STEP_TARGETS download)
+include(${PROJECT_SOURCE_DIR}/cmake/toolchain_check.cmake)
 list(APPEND ep
-    binutils
+    gcc-binutils
+    ${llvm_wrapper}
+    ${gcc_wrapper}
     mingw-w64
     mingw-w64-headers
-    gcc-base
-    mingw-w64-crt
-    winpthreads
-    gendef
+    cppwinrt
     gcc
+    mingw-w64-crt
+    gendef
     widl
+    rustup
+    llvm
+    llvm-compiler-rt-builtin
+    llvm-libcxx
+    llvm-compiler-rt
+    llvm-openmp
+    winpthreads
+    llvm-clang
 )
-
 foreach(package IN LISTS ep)
-    include(${CMAKE_CURRENT_SOURCE_DIR}/${package}.cmake)
-    message(STATUS "Parsing package ${package}")
+    if(NOT ${SINGLE_SOURCE_LOCATION} STREQUAL "")
+        set(SOURCE_LOCATION "${SINGLE_SOURCE_LOCATION}/${package}")
+    endif()
+    if(package MATCHES "llvm")
+        include(${CMAKE_CURRENT_SOURCE_DIR}/llvm/${package}.cmake)
+    elseif(package MATCHES "gcc")
+        include(${CMAKE_CURRENT_SOURCE_DIR}/gcc/${package}.cmake)
+    else()
+        include(${CMAKE_CURRENT_SOURCE_DIR}/${package}.cmake)
+    endif()
+    set(SOURCE_LOCATION "")
 endforeach()
+list(LENGTH ep ep_length)
+message(STATUS "Parsing ${ep_length} toolchain packages")

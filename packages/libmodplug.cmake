@@ -1,14 +1,22 @@
+configure_file(${CMAKE_CURRENT_SOURCE_DIR}/libmodplug.pc.in ${CMAKE_CURRENT_BINARY_DIR}/libmodplug.pc @ONLY)
 ExternalProject_Add(libmodplug
-    URL "http://download.sourceforge.net/modplug-xmms/libmodplug-0.8.9.0.tar.gz"
-    URL_HASH SHA256=457ca5a6c179656d66c01505c0d95fafaead4329b9dbaa0f997d00a3508ad9de
-    CONFIGURE_COMMAND ${EXEC} <SOURCE_DIR>/configure
-        --host=${TARGET_ARCH}
-        --prefix=${MINGW_INSTALL_PREFIX}
-        --disable-shared
-    BUILD_COMMAND ${MAKE}
-    INSTALL_COMMAND ${MAKE} install
+    GIT_REPOSITORY https://github.com/Konstanty/libmodplug.git
+    SOURCE_DIR ${SOURCE_LOCATION}
+    GIT_CLONE_FLAGS "--filter=tree:0"
+    UPDATE_COMMAND ""
+    CONFIGURE_COMMAND ${EXEC} CONF=1 cmake -H<SOURCE_DIR> -B<BINARY_DIR>
+        -G Ninja
+        -DCMAKE_BUILD_TYPE=Release
+        -DCMAKE_TOOLCHAIN_FILE=${TOOLCHAIN_FILE}
+        -DCMAKE_INSTALL_PREFIX=${MINGW_INSTALL_PREFIX}
+        -DCMAKE_FIND_ROOT_PATH=${MINGW_INSTALL_PREFIX}
+        -DBUILD_SHARED_LIBS=OFF
+        -DCMAKE_POLICY_VERSION_MINIMUM=3.5
+    BUILD_COMMAND ${EXEC} ninja -C <BINARY_DIR>
+    INSTALL_COMMAND ${EXEC} ninja -C <BINARY_DIR> install
+            COMMAND bash -c "cp ${CMAKE_CURRENT_BINARY_DIR}/libmodplug.pc ${MINGW_INSTALL_PREFIX}/lib/pkgconfig/libmodplug.pc"
     LOG_DOWNLOAD 1 LOG_UPDATE 1 LOG_CONFIGURE 1 LOG_BUILD 1 LOG_INSTALL 1
 )
 
-extra_step(libmodplug)
-autoreconf(libmodplug)
+force_rebuild_git(libmodplug)
+cleanup(libmodplug install)

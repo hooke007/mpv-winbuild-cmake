@@ -3,11 +3,13 @@ ExternalProject_Add(harfbuzz
         freetype2
         libpng
     GIT_REPOSITORY https://github.com/harfbuzz/harfbuzz.git
+    SOURCE_DIR ${SOURCE_LOCATION}
     GIT_REMOTE_NAME origin
     GIT_TAG main
-    GIT_SHALLOW 1
+    GIT_CLONE_FLAGS "--sparse --filter=tree:0"
+    GIT_CLONE_POST_COMMAND "sparse-checkout set --no-cone /* !test"
     UPDATE_COMMAND ""
-    CONFIGURE_COMMAND ${EXEC} meson <BINARY_DIR> <SOURCE_DIR>
+    CONFIGURE_COMMAND ${EXEC} CONF=1 meson setup <BINARY_DIR> <SOURCE_DIR>
         --prefix=${MINGW_INSTALL_PREFIX}
         --libdir=${MINGW_INSTALL_PREFIX}/lib
         --cross-file=${MESON_CROSS}
@@ -26,4 +28,4 @@ ExternalProject_Add(harfbuzz
 
 force_rebuild_git(harfbuzz)
 force_meson_configure(harfbuzz)
-extra_step(harfbuzz)
+cleanup(harfbuzz install)

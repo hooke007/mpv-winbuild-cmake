@@ -16,6 +16,8 @@ done")
 
 ExternalProject_Add(mpv-packaging
     GIT_REPOSITORY https://github.com/shinchiro/mpv-packaging.git
+    SOURCE_DIR ${SOURCE_LOCATION}
+    GIT_CLONE_FLAGS "--filter=tree:0"
     UPDATE_COMMAND ""
     CONFIGURE_COMMAND ""
     BUILD_COMMAND ""
@@ -24,6 +26,8 @@ ExternalProject_Add(mpv-packaging
     COMMAND ${PACKAGE} <SOURCE_DIR> ${CMAKE_BINARY_DIR} ${TARGET_CPU}
     BUILD_IN_SOURCE 1
     BUILD_ALWAYS 1
+    LOG_DOWNLOAD 1 LOG_UPDATE 1
 )
 
-extra_step(mpv-packaging)
+force_rebuild_git(mpv-packaging)
+cleanup(mpv-packaging install)

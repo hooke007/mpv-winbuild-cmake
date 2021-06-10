@@ -1,11 +1,7 @@
-set(rev "R52")
-
-if(${TARGET_CPU} MATCHES "x86_64")
-    set(link "https://github.com/vapoursynth/vapoursynth/releases/download/${rev}/VapourSynth64-Portable-${rev}.7z")
-    set(hash "9d244648c4603f502e8ad7258148e293a86ec934fc20c8762aca4e68cb33c612")
+if(${TARGET_CPU} MATCHES "x86_64" OR ${TARGET_CPU} MATCHES "aarch64")
+    set(rev "R65")
 else()
-    set(link "https://github.com/vapoursynth/vapoursynth/releases/download/${rev}/VapourSynth32-Portable-${rev}.7z")
-    set(hash "550ec2c4263fb345634df89d9e98fbc864fd3402f0237e390df6db05c5994ef0")
+    set(rev "R63")
     set(dlltool_opts "-U")
 endif()
 
@@ -15,11 +11,12 @@ configure_file(${CMAKE_CURRENT_SOURCE_DIR}/vapoursynth-script.pc.in ${CMAKE_CURR
 set(GENERATE_DEF ${CMAKE_CURRENT_BINARY_DIR}/vapoursynth-prefix/src/generate_def.sh)
 file(WRITE ${GENERATE_DEF}
 "#!/bin/bash
-gendef - $1.dll | sed -r -e 's|^_||' -e 's|@[1-9]+$||' > $1.def")
+if [[ \"$1\" != \"i686\" ]]; then
+    sed -r -e 's|@[0-9]+$||' -i $2
+fi")
 
 ExternalProject_Add(vapoursynth
-    URL ${link}
-    URL_HASH SHA256=${hash}
+    DOWNLOAD_COMMAND ""
     UPDATE_COMMAND ""
     PATCH_COMMAND ""
     CONFIGURE_COMMAND ""
@@ -31,12 +28,15 @@ ExternalProject_Add(vapoursynth
 ExternalProject_Add_Step(vapoursynth generate-def
     DEPENDEES install
     WORKING_DIRECTORY <SOURCE_DIR>
+    COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_SOURCE_DIR}/VapourSynth.def <SOURCE_DIR>/VapourSynth.def
+    COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_SOURCE_DIR}/VSScript.def    <SOURCE_DIR>/VSScript.def
     COMMAND chmod 755 ${GENERATE_DEF}
-    COMMAND ${EXEC} ${GENERATE_DEF} VSScript
-    COMMAND ${EXEC} ${GENERATE_DEF} VapourSynth
+    COMMAND ${EXEC} ${GENERATE_DEF} ${TARGET_CPU} VapourSynth.def
+    COMMAND ${EXEC} ${GENERATE_DEF} ${TARGET_CPU} VSScript.def
     LOG 1
 )
 
+if(COMPILER_TOOLCHAIN STREQUAL "gcc")
 ExternalProject_Add_Step(vapoursynth generate-lib
     DEPENDEES generate-def
     WORKING_DIRECTORY <SOURCE_DIR>
@@ -44,13 +44,23 @@ ExternalProject_Add_Step(vapoursynth generate-lib
     COMMAND ${EXEC} ${TARGET_ARCH}-dlltool -d VapourSynth.def -y libvapoursynth.a ${dlltool_opts}
     LOG 1
 )
+elseif(COMPILER_TOOLCHAIN STREQUAL "clang")
+ExternalProject_Add_Step(vapoursynth generate-lib
+    DEPENDEES generate-def
+    WORKING_DIRECTORY <SOURCE_DIR>
+    COMMAND ${EXEC} ${TARGET_ARCH}-dlltool -m ${dlltool_image} -d VSScript.def -l VSScript.lib
+    COMMAND ${EXEC} ${TARGET_ARCH}-dlltool -m ${dlltool_image} -d VapourSynth.def -l VapourSynth.lib
+    LOG 1
+)
+endif()
 
 ExternalProject_Add_Step(vapoursynth download-header
     DEPENDEES generate-lib
     WORKING_DIRECTORY <SOURCE_DIR>
     COMMAND curl -sOL https://raw.githubusercontent.com/vapoursynth/vapoursynth/${rev}/include/VapourSynth.h
+    COMMAND curl -sOL https://raw.githubusercontent.com/vapoursynth/vapoursynth/${rev}/include/VapourSynth4.h
     COMMAND curl -sOL https://raw.githubusercontent.com/vapoursynth/vapoursynth/${rev}/include/VSScript.h
-    COMMAND curl -sOL https://raw.githubusercontent.com/vapoursynth/vapoursynth/${rev}/include/VSHelper.h
+    COMMAND curl -sOL https://raw.githubusercontent.com/vapoursynth/vapoursynth/${rev}/include/VSScript4.h
     LOG 1
 )
 
@@ -59,14 +69,14 @@ ExternalProject_Add_Step(vapoursynth manual-install
     WORKING_DIRECTORY <SOURCE_DIR>
     # Copying header
     COMMAND ${CMAKE_COMMAND} -E copy <SOURCE_DIR>/VapourSynth.h ${MINGW_INSTALL_PREFIX}/include/vapoursynth/VapourSynth.h
+    COMMAND ${CMAKE_COMMAND} -E copy <SOURCE_DIR>/VapourSynth4.h ${MINGW_INSTALL_PREFIX}/include/vapoursynth/VapourSynth4.h
     COMMAND ${CMAKE_COMMAND} -E copy <SOURCE_DIR>/VSScript.h ${MINGW_INSTALL_PREFIX}/include/vapoursynth/VSScript.h
-    COMMAND ${CMAKE_COMMAND} -E copy <SOURCE_DIR>/VSHelper.h ${MINGW_INSTALL_PREFIX}/include/vapoursynth/VSHelper.h
+    COMMAND ${CMAKE_COMMAND} -E copy <SOURCE_DIR>/VSScript4.h ${MINGW_INSTALL_PREFIX}/include/vapoursynth/VSScript4.h
     # Copying libs
-    COMMAND ${CMAKE_COMMAND} -E copy <SOURCE_DIR>/libvsscript.a ${MINGW_INSTALL_PREFIX}/lib/libvsscript.a
-    COMMAND ${CMAKE_COMMAND} -E copy <SOURCE_DIR>/libvapoursynth.a ${MINGW_INSTALL_PREFIX}/lib/libvapoursynth.a
+    ${vapoursynth_manual_install_copy_lib}
     # Copying .pc files
     COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_BINARY_DIR}/vapoursynth.pc ${MINGW_INSTALL_PREFIX}/lib/pkgconfig/vapoursynth.pc
     COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_BINARY_DIR}/vapoursynth-script.pc ${MINGW_INSTALL_PREFIX}/lib/pkgconfig/vapoursynth-script.pc
 )
 
-extra_step(vapoursynth)
+cleanup(vapoursynth manual-install)

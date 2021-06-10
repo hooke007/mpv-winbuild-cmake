@@ -1,7 +1,7 @@
 ExternalProject_Add(mingw-w64
-    PREFIX mingw-w64-prefix
-    GIT_REPOSITORY https://github.com/mirror/mingw-w64.git
-    GIT_TAG f3855e2caa576b1a6288129f8f99a56d2ef969dd
+    GIT_REPOSITORY https://github.com/mingw-w64/mingw-w64.git
+    SOURCE_DIR ${SOURCE_LOCATION}
+    GIT_CLONE_FLAGS "--filter=tree:0"
     UPDATE_COMMAND ""
     CONFIGURE_COMMAND ""
     BUILD_COMMAND ""
@@ -10,3 +10,4 @@ ExternalProject_Add(mingw-w64
 )
 
 force_rebuild_git(mingw-w64)
+get_property(MINGW_SRC TARGET mingw-w64 PROPERTY _EP_SOURCE_DIR)

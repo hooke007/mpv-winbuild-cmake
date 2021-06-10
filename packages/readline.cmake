@@ -2,9 +2,10 @@ ExternalProject_Add(readline
     DEPENDS
         termcap
     GIT_REPOSITORY https://git.sailfishos.org/mirror/readline.git
-    GIT_SHALLOW 1
+    SOURCE_DIR ${SOURCE_LOCATION}
+    GIT_CLONE_FLAGS "--filter=tree:0"
     UPDATE_COMMAND ""
-    CONFIGURE_COMMAND ${EXEC} <SOURCE_DIR>/configure
+    CONFIGURE_COMMAND ${EXEC} CONF=1 <SOURCE_DIR>/configure
         --host=${TARGET_ARCH}
         --prefix=${MINGW_INSTALL_PREFIX}
         --enable-static
@@ -16,4 +17,4 @@ ExternalProject_Add(readline
     LOG_DOWNLOAD 1 LOG_UPDATE 1 LOG_CONFIGURE 1 LOG_BUILD 1 LOG_INSTALL 1
 )
 
-extra_step(readline)
+cleanup(readline install)

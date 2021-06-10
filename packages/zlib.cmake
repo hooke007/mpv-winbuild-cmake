@@ -1,14 +1,27 @@
 ExternalProject_Add(zlib
-    URL "http://download.sourceforge.net/libpng/zlib-1.2.11.tar.gz"
-    URL_HASH SHA256=c3e5e9fdd5004dcb542feda5ee4f0ff0744628baf8ed2dd5d66f8ca1197cb1a1
-    PATCH_COMMAND patch -p1 < ${CMAKE_CURRENT_SOURCE_DIR}/zlib-1-win32-static.patch
-    CONFIGURE_COMMAND ${EXEC} CHOST=${TARGET_ARCH} <SOURCE_DIR>/configure
-        --prefix=${MINGW_INSTALL_PREFIX}
-        --static
-    BUILD_COMMAND ${MAKE}
-    BUILD_IN_SOURCE 1
-    INSTALL_COMMAND ${MAKE} install
+    GIT_REPOSITORY https://github.com/zlib-ng/zlib-ng.git
+    SOURCE_DIR ${SOURCE_LOCATION}
+    GIT_CLONE_FLAGS "--filter=tree:0"
+    UPDATE_COMMAND ""
+    GIT_REMOTE_NAME origin
+    GIT_TAG develop
+    CONFIGURE_COMMAND ${EXEC} CONF=1 cmake -H<SOURCE_DIR> -B<BINARY_DIR>
+        -G Ninja
+        -DCMAKE_BUILD_TYPE=Release
+        -DCMAKE_TOOLCHAIN_FILE=${TOOLCHAIN_FILE}
+        -DCMAKE_INSTALL_PREFIX=${MINGW_INSTALL_PREFIX}
+        -DCMAKE_FIND_ROOT_PATH=${MINGW_INSTALL_PREFIX}
+        -DBUILD_SHARED_LIBS=OFF
+        -DINSTALL_PKGCONFIG_DIR=${MINGW_INSTALL_PREFIX}/lib/pkgconfig
+        -DSKIP_INSTALL_LIBRARIES=OFF
+        -DZLIB_COMPAT=ON
+        -DZLIB_ENABLE_TESTS=OFF
+        -DZLIBNG_ENABLE_TESTS=OFF
+        -DFNO_LTO_AVAILABLE=OFF
+    BUILD_COMMAND ${EXEC} ${zlib_nlto} ninja -C <BINARY_DIR>
+    INSTALL_COMMAND ${EXEC} ninja -C <BINARY_DIR> install
     LOG_DOWNLOAD 1 LOG_UPDATE 1 LOG_CONFIGURE 1 LOG_BUILD 1 LOG_INSTALL 1
 )
 
-extra_step(zlib)
+force_rebuild_git(zlib)
+cleanup(zlib install)

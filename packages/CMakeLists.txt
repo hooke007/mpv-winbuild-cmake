@@ -1,217 +1,122 @@
-if(${CMAKE_VERSION} VERSION_GREATER_EQUAL "3.19.0")
-    cmake_policy(SET CMP0114 OLD)
-endif()
-
-function(extra_step _name)
-    get_property(_build_in_source TARGET ${_name} PROPERTY _EP_BUILD_IN_SOURCE)
-    get_property(_git_repository TARGET ${_name} PROPERTY _EP_GIT_REPOSITORY)
-    get_property(_url TARGET ${_name} PROPERTY _EP_URL)
-
-    if(_build_in_source)
-        if(_git_repository)
-            set(remove_cmd "git -C <SOURCE_DIR> clean -dfx")
-        elseif(_url)
-            set(remove_cmd "rm -rf <SOURCE_DIR>")
-        endif()
-    else()
-        set(remove_cmd "rm -rf <BINARY_DIR>")
-    endif()
-
-    ExternalProject_Add_Step(${_name} fullclean
-        COMMAND ${EXEC} find <DOWNLOAD_DIR>/${_name}-stamp -type f " ! -iname '*.cmake' " -size 0c -delete # remove 0 byte files which are stamp files
-        ALWAYS TRUE
-        EXCLUDE_FROM_MAIN TRUE
-        COMMENT "Deleting all stamp files of ${_name} package"
-    )
-
-    ExternalProject_Add_Step(${_name} liteclean
-        COMMAND ${EXEC} rm -f <DOWNLOAD_DIR>/${_name}-stamp/${_name}-build
-                              <DOWNLOAD_DIR>/${_name}-stamp/${_name}-install
-        ALWAYS TRUE
-        EXCLUDE_FROM_MAIN TRUE
-        COMMENT "Deleting build, install stamp files of ${_name} package"
-    )
-
-    ExternalProject_Add_Step(${_name} removebuild
-        DEPENDEES fullclean
-        COMMAND ${EXEC} ${remove_cmd}
-        ALWAYS TRUE
-        EXCLUDE_FROM_MAIN TRUE
-        LOG 1
-        COMMENT "Deleting build directory of ${_name} package"
-    )
-
-    ExternalProject_Add_StepTargets(${_name} fullclean liteclean removebuild)
-endfunction()
-
-function(force_rebuild_git _name)
-    get_property(git_tag TARGET ${_name} PROPERTY _EP_GIT_TAG)
-    get_property(git_remote_name TARGET ${_name} PROPERTY _EP_GIT_REMOTE_NAME)
-
-    if("${git_remote_name}" STREQUAL "" AND NOT "${git_tag}" STREQUAL "")
-        # GIT_REMOTE_NAME is not set when commit hash is specified
-        set(pull "")
-    else()
-        set(git_tag "@{u}")
-        set(pull COMMAND git pull)
-    endif()
-
-    if(ENABLE_VCS_UPDATES)
-        ExternalProject_Add_Step(${_name} force-update
-            DEPENDEES download update
-            DEPENDERS patch build install
-            COMMAND git reset --hard ${git_tag}
-            ${pull}
-            WORKING_DIRECTORY <SOURCE_DIR>
-            LOG 1
-        )
-    endif()
-endfunction()
-
-function(force_rebuild_svn _name)
-    if(ENABLE_VCS_UPDATES)
-        ExternalProject_Add_Step(${_name} force-update
-            DEPENDEES download update
-            DEPENDERS patch build install
-            COMMAND svn revert -R .
-            COMMAND svn up
-            WORKING_DIRECTORY <SOURCE_DIR>
-            LOG 1
-        )
-    endif()
-endfunction()
-
-function(force_rebuild_hg _name)
-    if(ENABLE_VCS_UPDATES)
-        ExternalProject_Add_Step(${_name} force-update
-            DEPENDEES download update
-            DEPENDERS patch build install
-            COMMAND hg --config "extensions.purge=" purge --all
-            COMMAND hg update -C
-            WORKING_DIRECTORY <SOURCE_DIR>
-            LOG 1
-        )
-    endif()
-endfunction()
-
-function(autogen _name)
-    ExternalProject_Add_Step(${_name} autogen
-        DEPENDEES download update patch
-        DEPENDERS configure
-        COMMAND ${EXEC} ./autogen.sh -V
-        WORKING_DIRECTORY <SOURCE_DIR>
-        LOG 1
-    )
-endfunction()
-
-function(autoreconf _name)
-    ExternalProject_Add_Step(${_name} autoreconf
-        DEPENDEES download update patch
-        DEPENDERS configure
-        COMMAND ${EXEC} autoreconf -fi
-        WORKING_DIRECTORY <SOURCE_DIR>
-        LOG 1
-    )
-endfunction()
-
-function(force_meson_configure _name)
-    ExternalProject_Add_Step(${_name} force-meson-configure
-        DEPENDERS configure
-        COMMAND ${EXEC} rm -rf <BINARY_DIR>/meson-*
-        LOG 1
-    )
-endfunction()
-
+set_property(DIRECTORY PROPERTY EP_STEP_TARGETS download)
+include(${PROJECT_SOURCE_DIR}/cmake/packages_check.cmake)
 list(APPEND ep
-    gmp
     xz
     lzo
     uchardet
+    libsamplerate
     rubberband
     zlib
+    zstd
     bzip2
     libjpeg
     lcms2
-    lame
-    ogg
-    vorbis
-    opus
-    speex
     libmodplug
-    libvpx
-    xvidcore
-    game-music-emu
     libpng
-    x264
-    x265
     libdvdcss
     libdvdread
     libdvdnav
     libiconv
     luajit
-    openal-soft
     fribidi
     expat
-    nettle
-    libarchive
+    mbedtls
+    libxml2
+    brotli
     freetype2
+    libudfread
     libbluray
     harfbuzz
     libsoxr
+    graphengine
     libzimg
     fontconfig
+    libunibreak
     libass
-    libressl
-    libxml2
-    libmfx
+    libvpl
     amf-headers
     avisynth-headers
     nvcodec-headers
     libmysofa
-    aom
+    xxhash
     dav1d
     libwebp
     vapoursynth
     libbs2b
+    openssl
     libssh
-    libsdl2
-    libopenmpt
-    ffmpeg
-    angle-headers
+    libsrt
+    libarchive
+    highway
+    libjxl
+    uavs3d
+    davs2
     mujs
     spirv-headers
     spirv-tools
     spirv-cross
     glslang
+    vulkan-header
     vulkan
     shaderc
+    glad
+    fast_float
+    libdovi
     libplacebo
-    curl
+    libva
+    libzvbi
+    libaribcaption
+    libsixel
+    ffmpeg
     mpv
-    mpv-stable
     mpv-packaging
-    flac
-    opusfile
-    libopusenc
-    opus-tools
+    curl
     termcap
     readline
     cryptopp
     sqlite
-    libuv
     libsodium
-    megasdk
 )
 foreach(package IN LISTS ep)
+    if(NOT ${SINGLE_SOURCE_LOCATION} STREQUAL "")
+        set(SOURCE_LOCATION "${SINGLE_SOURCE_LOCATION}/${package}")
+    endif()
     include(${CMAKE_CURRENT_SOURCE_DIR}/${package}.cmake)
-    message(STATUS "Parsing package ${package}")
-endforeach()
+    set(SOURCE_LOCATION "")
 
-set(UPDATE_SCRIPT ${CMAKE_SOURCE_DIR}/scripts/update-repo.sh)
+    get_property(_git_repository TARGET ${package} PROPERTY _EP_GIT_REPOSITORY)
+    if(_git_repository)
+        list(APPEND repo ${package})
+    endif()
+endforeach()
+list(LENGTH ep ep_length)
+message(STATUS "Parsing ${ep_length} packages")
+
+# Exclude packages which dont depend on mpv when update
+list(APPEND removed "termcap" "readline" "cryptopp" "sqlite" "libsodium" "libsixel" "curl" "mbedtls")
+list(REMOVE_ITEM repo ${removed})
+list(REMOVE_ITEM ep ${removed})
+list(TRANSFORM repo APPEND "-force-update" OUTPUT_VARIABLE update)
+list(TRANSFORM ep APPEND "-download" OUTPUT_VARIABLE download)
+list(TRANSFORM ep APPEND "-fullclean" OUTPUT_VARIABLE fullclean)
+
 add_custom_target(update
-    USES_TERMINAL
-    WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
-    COMMAND chmod 755 ${UPDATE_SCRIPT}
-    COMMAND ${EXEC} ${UPDATE_SCRIPT}
+    COMMAND ${CMAKE_COMMAND} --build ${CMAKE_BINARY_DIR} --target ${update}
     COMMENT "Updating git repo"
+)
+
+add_custom_target(download
+    COMMAND ${CMAKE_COMMAND} --build ${CMAKE_BINARY_DIR} --target ${download}
+)
+
+add_custom_target(package-fullclean
+    COMMAND ${CMAKE_COMMAND} --build ${CMAKE_BINARY_DIR} --target ${fullclean}
+    COMMENT "Remove all stamp files, reset git HEAD"
+)
+
+add_custom_target(cargo-clean
+    COMMAND ${EXEC} LD_PRELOAD= cargo install --git https://github.com/matthiaskrgr/cargo-cache.git --no-default-features --features ci-autoclean cargo-cache
+    COMMAND ${EXEC} cargo-cache
+    COMMAND du -sh ${RUSTUP_LOCATION}
+    USES_TERMINAL
 )

@@ -1,19 +1,23 @@
 ExternalProject_Add(uchardet
-    GIT_REPOSITORY git://anongit.freedesktop.org/uchardet/uchardet
-    GIT_SHALLOW 1
+    GIT_REPOSITORY https://gitlab.freedesktop.org/uchardet/uchardet.git
+    SOURCE_DIR ${SOURCE_LOCATION}
+    GIT_CLONE_FLAGS "--filter=tree:0"
     UPDATE_COMMAND ""
-    CMAKE_ARGS
-        -DCMAKE_INSTALL_PREFIX=${MINGW_INSTALL_PREFIX}
+    CONFIGURE_COMMAND ${EXEC} CONF=1 cmake -H<SOURCE_DIR> -B<BINARY_DIR>
+        -G Ninja
+        -DCMAKE_BUILD_TYPE=Release
         -DCMAKE_TOOLCHAIN_FILE=${TOOLCHAIN_FILE}
+        -DCMAKE_INSTALL_PREFIX=${MINGW_INSTALL_PREFIX}
+        -DCMAKE_FIND_ROOT_PATH=${MINGW_INSTALL_PREFIX}
         -DBUILD_SHARED_LIBS=OFF
         -DBUILD_STATIC=ON
         -DBUILD_BINARY=OFF
-        -DCMAKE_BUILD_TYPE=Release
         -DTARGET_ARCHITECTURE=${TARGET_CPU_FAMILY}
-    BUILD_COMMAND ${CMAKE_MAKE_PROGRAM}
-    INSTALL_COMMAND ${CMAKE_MAKE_PROGRAM} install
+        -DCMAKE_POLICY_VERSION_MINIMUM=3.5
+    BUILD_COMMAND ${EXEC} ninja -C <BINARY_DIR>
+    INSTALL_COMMAND ${EXEC} ninja -C <BINARY_DIR> install
     LOG_DOWNLOAD 1 LOG_UPDATE 1 LOG_CONFIGURE 1 LOG_BUILD 1 LOG_INSTALL 1
 )
 
 force_rebuild_git(uchardet)
-extra_step(uchardet)
+cleanup(uchardet install)
