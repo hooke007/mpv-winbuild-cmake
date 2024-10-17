@@ -4,7 +4,7 @@ ExternalProject_Add(mingw-w64
     GIT_CLONE_FLAGS "--filter=tree:0"
     GIT_REMOTE_NAME origin
     GIT_TAG master
-    GIT_RESET d96d775
+    GIT_RESET 8fdf7c9
     UPDATE_COMMAND ""
     CONFIGURE_COMMAND ""
     BUILD_COMMAND ""
