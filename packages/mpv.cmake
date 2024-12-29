@@ -1,6 +1,5 @@
 ExternalProject_Add(mpv
     DEPENDS
-        angle-headers
         ffmpeg
         fribidi
         lcms2
@@ -14,14 +13,12 @@ ExternalProject_Add(mpv
         luajit
         rubberband
         uchardet
-        openal-soft
         mujs
         vulkan
         shaderc
         libplacebo
         spirv-cross
         vapoursynth
-        libsdl2
     GIT_REPOSITORY https://github.com/mpv-player/mpv.git
     SOURCE_DIR ${SOURCE_LOCATION}
     GIT_CLONE_FLAGS "--filter=tree:0"
@@ -41,18 +38,15 @@ ExternalProject_Add(mpv
         -Dpdf-build=enabled
         -Dlua=enabled
         -Djavascript=enabled
-        -Dsdl2=enabled
         -Dlibarchive=enabled
         -Dlibbluray=enabled
         -Ddvdnav=enabled
         -Duchardet=enabled
         -Drubberband=enabled
         -Dlcms2=enabled
-        -Dopenal=enabled
         -Dspirv-cross=enabled
         -Dvulkan=enabled
         -Dvapoursynth=enabled
-        ${mpv_gl}
         -Dc_args='-Wno-error=int-conversion'
     BUILD_COMMAND ${EXEC} LTO_JOB=1 PDB=1 ninja -C <BINARY_DIR>
     INSTALL_COMMAND ""

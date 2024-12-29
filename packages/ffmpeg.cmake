@@ -4,7 +4,6 @@ ExternalProject_Add(ffmpeg
         avisynth-headers
         ${nvcodec_headers}
         bzip2
-        lame
         lcms2
         openssl
         libssh
@@ -17,35 +16,24 @@ ExternalProject_Add(ffmpeg
         libpng
         libsoxr
         libbs2b
-        libvpx
         libwebp
         libzimg
         libmysofa
         fontconfig
         harfbuzz
-        opus
-        speex
-        vorbis
-        x264
-        ${ffmpeg_x265}
-        xvidcore
         libxml2
         libvpl
-        libopenmpt
         libjxl
         shaderc
         libplacebo
         libzvbi
         libaribcaption
-        aom
-        svtav1
         dav1d
         vapoursynth
         ${ffmpeg_uavs3d}
         ${ffmpeg_davs2}
         rubberband
         libva
-        openal-soft
     GIT_REPOSITORY https://github.com/FFmpeg/FFmpeg.git
     SOURCE_DIR ${SOURCE_LOCATION}
     GIT_CLONE_FLAGS "--sparse --filter=tree:0"
@@ -61,6 +49,7 @@ ExternalProject_Add(ffmpeg
         --enable-runtime-cpudetect
         --enable-gpl
         --enable-version3
+        --enable-nonfree
         --enable-postproc
         --enable-avisynth
         --enable-vapoursynth
@@ -73,25 +62,14 @@ ExternalProject_Add(ffmpeg
         --enable-libfontconfig
         --enable-libharfbuzz
         --enable-libmodplug
-        --enable-libopenmpt
-        --enable-libmp3lame
         --enable-lcms2
-        --enable-libopus
         --enable-libsoxr
-        --enable-libspeex
-        --enable-libvorbis
         --enable-libbs2b
         --enable-librubberband
-        --enable-libvpx
         --enable-libwebp
-        --enable-libx264
-        --enable-libx265
-        --enable-libaom
-        --enable-libsvtav1
         --enable-libdav1d
         ${ffmpeg_davs2_cmd}
         ${ffmpeg_uavs3d_cmd}
-        --enable-libxvid
         --enable-libzimg
         --enable-openssl
         --enable-libxml2
@@ -106,12 +84,11 @@ ExternalProject_Add(ffmpeg
         --enable-libaribcaption
         ${ffmpeg_cuda}
         --enable-amf
-        --enable-openal
         --enable-opengl
+        --enable-vaapi
         --disable-doc
         --disable-ffplay
         --disable-ffprobe
-        --enable-vaapi
         --disable-vdpau
         --disable-videotoolbox
         --disable-decoder=libaom_av1
